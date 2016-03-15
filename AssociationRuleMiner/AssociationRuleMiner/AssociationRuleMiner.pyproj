@@ -23,19 +23,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssociationRuleMiner.py" />
-    <Compile Include="data_parser\DataBasket.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="data_parser\DataFileParser.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="data_parser\__init__.py">
+    <Compile Include="data_parser.py" />
+    <Compile Include="demo.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ar_test_data\" />
-    <Folder Include="data_parser\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ar_test_data\products" />
