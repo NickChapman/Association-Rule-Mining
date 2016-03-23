@@ -64,6 +64,7 @@ class DataBasket(object):
                 raise AssertionError('A basket matrix entry must be the same length as the products list')
         self.__products_list = products_list
         self.__basket_matrix = basket_matrix
+        self.__item_sets_need_generation = True
 
     @property
     def products_list(self):
@@ -74,6 +75,7 @@ class DataBasket(object):
         """Sets the product list and clears any existing basket matrix"""
         self.__basket_matrix = None
         self.__products_list = value
+        self.__item_sets_need_generation = True
 
     @property
     def basket_matrix(self):
@@ -85,11 +87,27 @@ class DataBasket(object):
         Ensures that a products list exists first
         Ensures that the basket matrix matches up with the products list
         """
-        if self.__products_list == None:
+        if self.__products_list is None:
             raise AssertionError('A product list must exist before a basket matrix')
         if len(self.__products_list) != len(value[0]):
             raise AssertionError('A basket matrix entry must be the same length as the products list')
         self.__basket_matrix = value
+        self.__item_sets_need_generation = True
+
+    @property
+    def item_sets(self):
+        if self.__products_list is None or self.__basket_matrix is None:
+            raise AssertionError('A product list and basket matrix must exist before item sets can be generated')
+        if self.__item_sets_need_generation:
+            self.__item_sets = []
+            for row in self.basket_matrix:
+                row_set = set()
+                for i, item in enumerate(row):
+                    if item > 0:
+                        row_set.add(self.products_list[i])
+                self.__item_sets.append(row_set)
+            self.__item_sets_need_generation = False
+        return self.__item_sets
 
 class Product(object):
     """Stores the name of a product and its price"""
@@ -99,3 +117,8 @@ class Product(object):
         self.name = name
         self.price = price
 
+    def __str__(self):
+        return self.name
+    
+    def __repre__(self):
+        return "Product()"

@@ -37,6 +37,8 @@
   <ItemGroup>
     <Content Include="ar_test_data\products" />
     <Content Include="ar_test_data\small_basket.dat" />
+    <Content Include="ar_test_data\tiny_test_basket.bsk" />
+    <Content Include="ar_test_data\tiny_test_products.prod" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
