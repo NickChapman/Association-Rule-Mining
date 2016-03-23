@@ -1,3 +1,6 @@
+from itertools import combinations
+
+
 class AssociationRuleMiner(object):
     """Uses market basket analysis to generate association rules"""
     
@@ -5,9 +8,24 @@ class AssociationRuleMiner(object):
         """ Constructor for the Association Rule Miner
         @param basket_data: A DataBasket object containing the pertinent data
         """
-        self.basket_data = basket_data
+        self.__basket_data = basket_data
         self.support_threshold = support_threshold
         self.confidence_threshold = confidence_threshold
+        self.confidence_counts = {}
+        self.association_rules = []
+
+    @property
+    def basket_data(self):
+        return self.__basket_data
+
+    @basket_data.setter
+    def basket_data(self, value):
+        """ Basket data setter
+        Makes sure to clear all previous confidence counts and rules
+        """
+        self.__basket_data = value
+        self.confidence_counts = 0
+        self.association_rules = 0
 
     def build_frequent_item_sets(self):
         """ Uses an Apriori approach to generate all frequent item sets
@@ -18,7 +36,7 @@ class AssociationRuleMiner(object):
         level_1_frequent_item_sets = []
         possible_item_sets = []
         for product in self.basket_data.products_list:
-            possible_item_sets.append(set([product]))
+            possible_item_sets.append(frozenset([product]))
         for item_set in possible_item_sets:
             support_count = 0
             for basket_set in self.basket_data.item_sets:
@@ -61,8 +79,83 @@ class AssociationRuleMiner(object):
             self.frequent_item_sets.append(level_k_valid_sets)
             k += 1
 
-def build_association_rules(self):
-    pass # TODO
+    def get_association_rules(self):
+        # We note that item sets of size 1 cannot give us a rule
+        self.association_rules = []
+        for i in range(1, len(self.frequent_item_sets)):
+            for item_set in self.frequent_item_sets[i]:
+                possible_rules = self.get_possible_rules(item_set)
+                for rule in possible_rules:
+                    if (rule.support >= self.support_threshold and
+                        rule.confidence >= self.confidence_threshold and
+                        rule.lift >= 1):
+                        self.association_rules.append(rule)
+
+    def sort_association_rules(self):
+        """ Sorts the association rules in order of confidence and lift descending"""
+        if len(self.association_rules) > 0:
+            self.association_rules.sort(key=lambda x: x.lift, reverse=True)
+            self.association_rules.sort(key=lambda x: x.confidence, reverse=True)
+
+    def get_possible_rules(self, frequent_item_set):
+        """ Generates all of the possible rules from the frequent item set
+        This process is slightly inefficient and could be improved
+        It doubles up some of its work since all possible 2->3 rules are just 3->2 rules
+        @param frequent_item_set: The item set to generate rules from
+        """
+        possible_rules = []
+        # We generate the item set support since it is also
+        # going to be the support of all of the rules that we generate
+        item_set_support_count = 0
+        for item_set in self.basket_data.item_sets:
+            if frequent_item_set.issubset(item_set):
+                item_set_support_count += 1
+        # Now calculate all of the possible rules
+        for antecedent_size in range(1, len(frequent_item_set)):
+            consequent_size = len(frequent_item_set) - antecedent_size
+            antecedent_combinations = combinations(frequent_item_set, antecedent_size)
+            consequent_combinations = combinations(frequent_item_set, consequent_size)
+            # We now convert the generators to list so Python doesn't freak out
+            antecedents = []
+            for antecedent in antecedent_combinations:
+                antecedents.append(frozenset(antecedent))
+            consequents = []
+            for consequent in consequent_combinations:
+                consequents.append(frozenset(consequent))
+            for antecedent in antecedents:
+                for consequent in consequents:
+                    if len(antecedent.intersection(consequent)) == 0:
+                        # We already have the support so we just need the confidence and lift
+                        basket_size = len(self.basket_data.item_sets)
+                        support = item_set_support_count / basket_size
+                        if antecedent not in self.confidence_counts:
+                            confidence_count = 0
+                            for item_set in self.basket_data.item_sets:
+                                if antecedent.issubset(item_set):
+                                    confidence_count += 1
+                            self.confidence_counts[antecedent] = confidence_count
+                        else:
+                            confidence_count = self.confidence_counts[frozenset(antecedent)]
+                        confidence = item_set_support_count / confidence_count
+                        expected_confidence = confidence_count / basket_size
+                        lift = confidence / expected_confidence
+                        possible_rules.append(
+                            AssociationRule(antecedent, consequent, support, confidence, lift)
+                            )
+        return possible_rules
+
+    def full_run_with_report(self):
+        print("Generating rules with")
+        print("\tmin-support    : " + str(self.support_threshold))
+        print("\tmin-confidence : " + str(self.confidence_threshold))
+        self.build_frequent_item_sets()
+        self.get_association_rules()
+        self.sort_association_rules()
+        for rule in self.association_rules:
+            print(str(rule) + " ; Sup=" + str(format(rule.support, ".3f")) + 
+                  " ; Conf=" + str(format(rule.confidence, ".3f")) +
+                  " ; Lift=" + str(format(rule.lift, ".3f")))
+
 
 class AssociationRule(object):
     """ A single association rule
@@ -75,3 +168,17 @@ class AssociationRule(object):
         self.support = support
         self.confidence = connfidence
         self.lift = lift
+
+    def __repr__(self):
+        return "AssociationRule()"
+
+    def __str__(self):
+        ant_str = ""
+        for ant in self.antecedent:
+            ant_str += str(ant) + " + "
+        ant_str = ant_str[:-3]
+        cons_str = ""
+        for cons in self.consequent:
+            cons_str += str(cons) + " + "
+        cons_str = cons_str[:-3]
+        return ant_str + " -> " + cons_str

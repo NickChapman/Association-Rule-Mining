@@ -101,10 +101,11 @@ class DataBasket(object):
         if self.__item_sets_need_generation:
             self.__item_sets = []
             for row in self.basket_matrix:
-                row_set = set()
+                row_set_list = []
                 for i, item in enumerate(row):
                     if item > 0:
-                        row_set.add(self.products_list[i])
+                        row_set_list.append(self.products_list[i])
+                row_set = frozenset(row_set_list)
                 self.__item_sets.append(row_set)
             self.__item_sets_need_generation = False
         return self.__item_sets
