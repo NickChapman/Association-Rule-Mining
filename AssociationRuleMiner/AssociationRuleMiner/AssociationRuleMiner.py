@@ -148,13 +148,28 @@ class AssociationRuleMiner(object):
         print("Generating rules with")
         print("\tmin-support    : " + str(self.support_threshold))
         print("\tmin-confidence : " + str(self.confidence_threshold))
+        print()
+        print("Generating frequent item sets.....", end="")
         self.build_frequent_item_sets()
+        print("Done")
+        for k, item_sets in enumerate(self.frequent_item_sets):
+            print("\tNumber of k=" + str(k+1) + " item sets: " + str(len(item_sets)))
+        print()
+        print("Building association rules.....", end="")
         self.get_association_rules()
+        print("Done")
+        print("Sorting association rules.....", end="")
         self.sort_association_rules()
-        for rule in self.association_rules:
-            print(str(rule) + " ; Sup=" + str(format(rule.support, ".3f")) + 
-                  " ; Conf=" + str(format(rule.confidence, ".3f")) +
-                  " ; Lift=" + str(format(rule.lift, ".3f")))
+        print("Done")
+        print("Rule generation complete....." + str(len(self.association_rules)) + " rules found")
+        print()
+        if len(self.association_rules) > 0:
+            print("Rules:")
+            for rule in self.association_rules:
+                print("\t* " + str(rule) + " ; Sup=" + str(format(rule.support, ".3f")) + 
+                      " ; Conf=" + str(format(rule.confidence, ".3f")) +
+                      " ; Lift=" + str(format(rule.lift, ".3f")))
+        print()
 
 
 class AssociationRule(object):
@@ -182,3 +197,43 @@ class AssociationRule(object):
             cons_str += str(cons) + " + "
         cons_str = cons_str[:-3]
         return ant_str + " -> " + cons_str
+
+    def __eq__(self, other):
+        if isinstance(other, AssociationRule):
+            if (len(self.antecedent.difference(other.antecedent)) == 0 and
+                len(self.consequent.difference(other.consequent)) == 0 and
+                self.lift == other.lift and
+                self.confidence == other.confidence and
+                self.support == other.support):
+                return True
+        else:
+            return False
+
+    @staticmethod
+    def __fnv1a_64(string):
+        """ Hashes a string using the 64 bit FNV1a algorithm
+        Used here simply as a utility
+        For more information see:
+            https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+        @param string The key to hash
+        @returns Hashed key
+        """
+        fnv_offset = 0xcbf29ce484222325 # The standard FNV 64 bit offset base
+        fnv_prime = 0x100000001b3 # The standard FNV 64 digit prime
+        hash = fnv_offset
+        uint64_max = 2 ** 64
+        # Iterate through the bytes of the string, ie the characters
+        for char in string:
+            # ord() converts the character to its unicode value
+            hash = hash ^ ord(char)
+            hash = (hash * fnv_prime) % uint64_max
+        return hash
+
+    def __hash__(self):
+        hash_str = ""
+        for item in self.antecedent:
+            hash_str += item.name
+        hash_str += "->"
+        for item in self.consequent:
+            hash_str += item.name
+        return self.__fnv1a_64(hash_str)
